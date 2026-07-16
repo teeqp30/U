@@ -1,5 +1,5 @@
 // ============================================================
-//  Wolf Gps — Tweak.x
+//  Wolf Gps — Tweak.x (Logos Edition)
 //  تزييف الموقع + محاكاة الكاميرا + تخطي الحماية
 //  السيرفر: https://api.p3nd.fun
 // ============================================================
@@ -8,27 +8,38 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import "WolfoxSpoofStore.h"
+#import "WolfoxSpoofOverlay.h"
 
-// ============================================================
-//  تزييف الموقع — CLLocationManager
-// ============================================================
+// -------------- License API --------------
+extern void GPSLicenseStart(void);
+extern BOOL GPSLicenseIsAuthorized(void);
+extern void GPSLicensePresentActivation(void);
+extern NSString* GPSLicenseExpiresAt(void);
+#define GPSLicenseAuthorizedNotification @"GPSLicenseAuthorizedNotification"
+#define GPSLicenseRevokedNotification @"GPSLicenseRevokedNotification"
 
-%hook CLLocationManager
-
-- (void)setDelegate:(id<CLLocationManagerDelegate>)delegate {
-    if (delegate) {
-        // هوك ديناميكي للـ delegate لتجنب هوك NSObject العام
-        %orig(delegate);
-    } else {
-        %orig;
+// -------------- Helpers --------------
+static UIWindow *WolfoxCurrentWindow(void) {
+    UIApplication *app = UIApplication.sharedApplication;
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in app.connectedScenes) {
+            if (![scene isKindOfClass:UIWindowScene.class] || scene.activationState != UISceneActivationStateForegroundActive) continue;
+            for (UIWindow *window in ((UIWindowScene *)scene).windows) if (window.isKeyWindow) return window;
+        }
     }
+    return app.keyWindow ?: app.windows.firstObject;
 }
 
-- (void)startUpdatingLocation {
-    %orig;
+static void WolfoxEnableTool(void) {
+    if (!GPSLicenseIsAuthorized()) return;
+    UIWindow *win = WolfoxCurrentWindow();
+    if (!win) return;
+    if ([WolfoxSpoofOverlay shared].view.superview != win) {
+        [[WolfoxSpoofOverlay shared].view removeFromSuperview];
+        [win addSubview:[WolfoxSpoofOverlay shared].view];
+    }
+    [WolfoxSpoofOverlay shared].view.hidden = NO;
 }
-
-%end
 
 // ============================================================
 //  تزييف الموقع — CLLocation
@@ -38,38 +49,20 @@
 
 - (CLLocationCoordinate2D)coordinate {
     WolfoxSpoofStore *store = [WolfoxSpoofStore shared];
-    if (!store.isActive || !store.hasStoredLocation) {
-        return %orig;
+    if (store.isActive) {
+        CLLocationCoordinate2D base = store.isRouteActive ? store.currentMovingCoords : store.fakeCoords;
+        return CLLocationCoordinate2DMake(base.latitude + store.driftLatitude, base.longitude + store.driftLongitude);
     }
-
-    CLLocationCoordinate2D coords = store.fakeCoords;
-
-    if (store.isJitterActive) {
-        double jitter = store.jitterDistance / 111320.0;
-        double dLat = ((double)arc4random() / UINT32_MAX - 0.5) * 2.0 * jitter;
-        double dLon = ((double)arc4random() / UINT32_MAX - 0.5) * 2.0 * jitter;
-        coords.latitude  += dLat;
-        coords.longitude += dLon;
-    }
-
-    return coords;
-}
-
-- (CLLocationAccuracy)horizontalAccuracy {
-    if (![WolfoxSpoofStore shared].isActive) {
-        return %orig;
-    }
-    return 5.0;
+    return %orig;
 }
 
 %end
 
 // ============================================================
-//  تخطي حماية الجلبريك - تحسين الأداء والأمان
+//  تخطي حماية الجلبريك
 // ============================================================
 
 %hook NSFileManager
-
 - (BOOL)fileExistsAtPath:(NSString *)path {
     if ([path containsString:@"/Applications/Cydia.app"] || 
         [path containsString:@"/Applications/Sileo.app"] ||
@@ -79,7 +72,6 @@
     }
     return %orig;
 }
-
 %end
 
 // ============================================================
@@ -89,19 +81,28 @@
 extern void WolfGpsInitUI(void);
 
 %hook SpringBoard
-
 - (void)applicationDidFinishLaunching:(id)app {
     %orig;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         WolfGpsInitUI();
+        GPSLicenseStart();
     });
 }
-
 %end
 
 %ctor {
     @autoreleasepool {
         [[WolfoxSpoofStore shared] load];
+        
+        [[NSNotificationCenter defaultCenter] addObserverForName:GPSLicenseAuthorizedNotification object:nil queue:NSOperationQueue.mainQueue usingBlock:^(__unused NSNotification *note) {
+            if (![WolfoxSpoofStore shared].toolHidden) {
+                WolfoxEnableTool();
+            }
+        }];
+        
+        [[NSNotificationCenter defaultCenter] addObserverForName:GPSLicenseRevokedNotification object:nil queue:NSOperationQueue.mainQueue usingBlock:^(__unused NSNotification *note) {
+            [WolfoxSpoofOverlay shared].view.hidden = YES;
+        }];
     }
 }
