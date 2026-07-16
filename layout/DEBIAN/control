@@ -1,0 +1,9 @@
+Package: com.wolfgps.tweak
+Name: Wolf Gps
+Version: 3.4.0
+Architecture: iphoneos-arm
+Description: Wolf Gps - تزييف الموقع المتقدم مع تخفي تام وميزات احترافية
+Maintainer: Wolf Gps
+Author: Wolf Gps
+Section: Tweaks
+Depends: mobilesubstrate, preferenceloader

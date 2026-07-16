@@ -1,0 +1,54 @@
+name: Build Wolf Gps dylib
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Theos
+      run: |
+        set -e
+        export THEOS=~/theos
+        git clone --recursive https://github.com/theos/theos $THEOS -q
+        
+    - name: Download iOS SDK
+      run: |
+        export THEOS=~/theos
+        mkdir -p $THEOS/sdks
+        curl -L https://github.com/theos/sdks/releases/download/2024-06-06/iPhoneOS16.5.sdk.tar.xz \
+          -o /tmp/sdk.tar.xz --progress-bar
+        tar -xJf /tmp/sdk.tar.xz -C $THEOS/sdks/
+        echo "✅ SDK installed: $(ls $THEOS/sdks/)"
+
+    - name: Build dylib
+      run: |
+        export THEOS=~/theos
+        export PATH=$THEOS/bin:$PATH
+        make package FINALPACKAGE=1
+        echo "✅ Build complete"
+        ls -la packages/ || true
+        find . -name "*.dylib" -o -name "*.deb" | head -10
+
+    - name: Upload dylib artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: WolfGps-dylib
+        path: |
+          packages/*.deb
+          .theos/obj/**/*.dylib
+        retention-days: 30
+
+    - name: Upload deb artifact  
+      uses: actions/upload-artifact@v4
+      with:
+        name: WolfGps-deb
+        path: packages/
+        retention-days: 30
