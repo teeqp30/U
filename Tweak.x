@@ -209,18 +209,6 @@
 
 %end
 
-%hook NSProcessInfo
-
-- (id)environment {
-    NSMutableDictionary *env = [%orig mutableCopy];
-    [env removeObjectForKey:@"DYLD_INSERT_LIBRARIES"];
-    [env removeObjectForKey:@"_MSSafeMode"];
-    [env removeObjectForKey:@"_SafeMode"];
-    return [env copy];
-}
-
-%end
-
 // ============================================================
 //  تهيئة الأداة
 // ============================================================
