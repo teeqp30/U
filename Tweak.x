@@ -213,6 +213,17 @@
 //  تهيئة الأداة
 // ============================================================
 
+extern void WolfGpsInitUI(void);
+
+%hook SpringBoard
+
+- (void)applicationDidFinishLaunching:(id)app {
+    %orig;
+    WolfGpsInitUI();
+}
+
+%end
+
 %ctor {
     @autoreleasepool {
         [[WolfoxSpoofStore shared] load];
