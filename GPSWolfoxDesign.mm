@@ -333,7 +333,7 @@ static UIViewController *WFTopController(void) {
 
 - (void)show { [self buildIfNeeded]; self.hiddenByUser = NO; [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"WFOrbHidden"]; self.window.hidden = NO; }
 - (void)hide { self.hiddenByUser = YES; [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"WFOrbHidden"]; self.window.hidden = YES; }
-- (void)tapOrb { if (GPSLicenseIsAuthorized()) WolfoxToggleMainPanel(); else GPSPresentActivationUI(); }
+- (void)tapOrb { if (GPSLicenseIsAuthorized()) WolfoxToggleMainPanel(); else GPSLicensePresentActivation(); }
 - (void)longPress:(UILongPressGestureRecognizer *)g { if (g.state == UIGestureRecognizerStateBegan) [self hide]; }
 
 - (void)dragOrb:(UIPanGestureRecognizer *)g {
@@ -357,7 +357,7 @@ static UIViewController *WFTopController(void) {
 }
 @end
 
-extern "C" void GPSPresentActivationUI(void) {
+extern "C" void GPSLicensePresentActivation(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIViewController *top = WFTopController();
         if (!top || [top isKindOfClass:WFActivationViewController.class] || [top.presentedViewController isKindOfClass:WFActivationViewController.class]) return;
@@ -377,7 +377,7 @@ __attribute__((constructor)) static void WFDesignInit(void) {
                 GPSFloatingIconShow();
             }
         }];
-        [[NSNotificationCenter defaultCenter] addObserverForName:@"GPSLicenseRevokedNotification" object:nil queue:NSOperationQueue.mainQueue usingBlock:^(__unused NSNotification *n){ GPSFloatingIconHide(); GPSPresentActivationUI(); }];
+        [[NSNotificationCenter defaultCenter] addObserverForName:@"GPSLicenseRevokedNotification" object:nil queue:NSOperationQueue.mainQueue usingBlock:^(__unused NSNotification *n){ GPSFloatingIconHide(); GPSLicensePresentActivation(); }];
         if (GPSLicenseIsAuthorized() && ![[WolfoxSpoofStore shared] toolHidden]) GPSFloatingIconShow();
     });
 }

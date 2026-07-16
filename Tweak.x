@@ -1,16 +1,7 @@
-// ============================================================
-//  Wolf Gps — Tweak.x (Logos Edition)
-//  تزييف الموقع + محاكاة الكاميرا + تخطي الحماية
-//  السيرفر: https://api.p3nd.fun
-// ============================================================
-
 #import <CoreLocation/CoreLocation.h>
 #import <UIKit/UIKit.h>
-#import <AVFoundation/AVFoundation.h>
 #import "WolfoxSpoofStore.h"
 #import "WolfoxSpoofOverlay.h"
-
-// -------------- License API --------------
 #import "GPSWolfoxAPI.h"
 
 // -------------- Helpers --------------
@@ -36,12 +27,23 @@ static void WolfoxEnableTool(void) {
     [WolfoxSpoofOverlay shared].view.hidden = NO;
 }
 
+void WolfoxToggleMainPanel(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        WolfoxSpoofOverlay *overlay = [WolfoxSpoofOverlay shared];
+        if (!GPSLicenseIsAuthorized()) { GPSLicensePresentActivation(); return; }
+        if (overlay.view.hidden || !overlay.view.superview) {
+            WolfoxEnableTool();
+        } else {
+            overlay.view.hidden = YES;
+        }
+    });
+}
+
 // ============================================================
 //  تزييف الموقع — CLLocation
 // ============================================================
 
 %hook CLLocation
-
 - (CLLocationCoordinate2D)coordinate {
     WolfoxSpoofStore *store = [WolfoxSpoofStore shared];
     if (store.isActive) {
@@ -50,7 +52,6 @@ static void WolfoxEnableTool(void) {
     }
     return %orig;
 }
-
 %end
 
 // ============================================================
