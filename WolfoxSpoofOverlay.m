@@ -270,7 +270,7 @@ static UIWindow *WolfoxCurrentWindow(void) {
     return app.keyWindow ?: app.windows.firstObject;
 }
 
-static void WolfoxEnableTool(void) {
+void WolfoxEnableTool(void) {
     if (!GPSLicenseIsAuthorized()) return;
     // wolfoxHooksInstalled check and setup removed as hooks are now set up in init_tool
     UIWindow *win = WolfoxCurrentWindow();
@@ -281,3 +281,8 @@ static void WolfoxEnableTool(void) {
     }
     [WolfoxSpoofOverlay shared].view.hidden = NO;
 }
+
+#pragma mark - Protocol Stubs to fix build errors
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return 0; }
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath { return [UITableViewCell new]; }
+- (void)centralManagerDidUpdateState:(CBCentralManager *)central { }
