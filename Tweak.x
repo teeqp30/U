@@ -4,12 +4,11 @@
 #import "WolfoxSpoofOverlay.h"
 #import "GPSWolfoxAPI.h"
 
-// -------------- Helpers --------------
 static UIWindow *WolfoxCurrentWindow(void) {
-    UIApplication *app = UIApplication.sharedApplication;
+    UIApplication *app = [UIApplication sharedApplication];
     if (@available(iOS 13.0, *)) {
         for (UIScene *scene in app.connectedScenes) {
-            if (![scene isKindOfClass:UIWindowScene.class] || scene.activationState != UISceneActivationStateForegroundActive) continue;
+            if (![scene isKindOfClass:[UIWindowScene class]] || scene.activationState != UISceneActivationStateForegroundActive) continue;
             for (UIWindow *window in ((UIWindowScene *)scene).windows) if (window.isKeyWindow) return window;
         }
     }
@@ -29,8 +28,8 @@ static void WolfoxEnableTool(void) {
 
 void WolfoxToggleMainPanel(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        WolfoxSpoofOverlay *overlay = [WolfoxSpoofOverlay shared];
         if (!GPSLicenseIsAuthorized()) { GPSLicensePresentActivation(); return; }
+        WolfoxSpoofOverlay *overlay = [WolfoxSpoofOverlay shared];
         if (overlay.view.hidden || !overlay.view.superview) {
             WolfoxEnableTool();
         } else {
@@ -38,10 +37,6 @@ void WolfoxToggleMainPanel(void) {
         }
     });
 }
-
-// ============================================================
-//  تزييف الموقع — CLLocation
-// ============================================================
 
 %hook CLLocation
 - (CLLocationCoordinate2D)coordinate {
@@ -53,10 +48,6 @@ void WolfoxToggleMainPanel(void) {
     return %orig;
 }
 %end
-
-// ============================================================
-//  تخطي حماية الجلبريك
-// ============================================================
 
 %hook NSFileManager
 - (BOOL)fileExistsAtPath:(NSString *)path {
@@ -70,11 +61,7 @@ void WolfoxToggleMainPanel(void) {
 }
 %end
 
-// ============================================================
-//  تهيئة الأداة
-// ============================================================
-
-extern void WolfGpsInitUI(void);
+extern "C" void WolfGpsInitUI(void);
 
 %hook SpringBoard
 - (void)applicationDidFinishLaunching:(id)app {
@@ -90,14 +77,12 @@ extern void WolfGpsInitUI(void);
 %ctor {
     @autoreleasepool {
         [[WolfoxSpoofStore shared] load];
-        
-        [[NSNotificationCenter defaultCenter] addObserverForName:GPSLicenseAuthorizedNotification object:nil queue:NSOperationQueue.mainQueue usingBlock:^(__unused NSNotification *note) {
+        [[NSNotificationCenter defaultCenter] addObserverForName:GPSLicenseAuthorizedNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(__unused NSNotification *note) {
             if (![WolfoxSpoofStore shared].toolHidden) {
                 WolfoxEnableTool();
             }
         }];
-        
-        [[NSNotificationCenter defaultCenter] addObserverForName:GPSLicenseRevokedNotification object:nil queue:NSOperationQueue.mainQueue usingBlock:^(__unused NSNotification *note) {
+        [[NSNotificationCenter defaultCenter] addObserverForName:GPSLicenseRevokedNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(__unused NSNotification *note) {
             [WolfoxSpoofOverlay shared].view.hidden = YES;
         }];
     }
