@@ -61,7 +61,7 @@ void WolfoxToggleMainPanel(void) {
 }
 %end
 
-extern "C" void WolfGpsInitUI(void);
+void WolfGpsInitUI(void);
 
 %hook SpringBoard
 - (void)applicationDidFinishLaunching:(id)app {
