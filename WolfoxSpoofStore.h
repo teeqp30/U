@@ -18,6 +18,7 @@
 @property (nonatomic, assign) CLLocationCoordinate2D endCoords;
 @property (nonatomic, assign) double travelSpeed;
 @property (nonatomic, assign) CLLocationCoordinate2D currentMovingCoords;
+@property (nonatomic, assign) NSInteger mapType;
 
 + (instancetype)shared;
 - (void)save;

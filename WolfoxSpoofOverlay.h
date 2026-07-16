@@ -56,4 +56,5 @@
 + (instancetype)shared;
 - (void)hideToolCompletely;
 - (void)showToolGesture;
+void WolfoxEnableTool(void);
 @end

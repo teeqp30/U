@@ -15,7 +15,7 @@ static UIWindow *WolfoxCurrentWindow(void) {
     return app.keyWindow ?: app.windows.firstObject;
 }
 
-static void WolfoxEnableTool(void) {
+void WolfoxEnableTool(void) {
     if (!GPSLicenseIsAuthorized()) return;
     UIWindow *win = WolfoxCurrentWindow();
     if (!win) return;
