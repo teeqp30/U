@@ -25,15 +25,20 @@
 
 %end
 
+// ============================================================
+//  تزييف الموقع — CLLocation
+// ============================================================
+
 %hook CLLocation
 
 - (CLLocationCoordinate2D)coordinate {
     WolfoxSpoofStore *store = [WolfoxSpoofStore shared];
-    if (!store.isActive || !store.hasStoredLocation) return %orig;
+    if (!store.isActive || !store.hasStoredLocation) {
+        return %orig;
+    }
 
     CLLocationCoordinate2D coords = store.fakeCoords;
 
-    // الارتجاج
     if (store.isJitterActive) {
         double jitter = store.jitterDistance / 111320.0;
         double dLat = ((double)arc4random() / UINT32_MAX - 0.5) * 2.0 * jitter;
@@ -45,14 +50,28 @@
     return coords;
 }
 
-- (CLLocationDistance)altitude { return %orig; }
+- (CLLocationDistance)altitude {
+    return %orig;
+}
+
 - (CLLocationAccuracy)horizontalAccuracy {
-    if (![WolfoxSpoofStore shared].isActive) return %orig;
+    if (![WolfoxSpoofStore shared].isActive) {
+        return %orig;
+    }
     return 5.0;
 }
-- (CLLocationAccuracy)verticalAccuracy { return %orig; }
-- (CLLocationSpeed)speed { return %orig; }
-- (CLLocationDirection)course { return %orig; }
+
+- (CLLocationAccuracy)verticalAccuracy {
+    return %orig;
+}
+
+- (CLLocationSpeed)speed {
+    return %orig;
+}
+
+- (CLLocationDirection)course {
+    return %orig;
+}
 
 %end
 
@@ -62,7 +81,7 @@
 
 %hook NSObject
 
-- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations {
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations {
     WolfoxSpoofStore *store = [WolfoxSpoofStore shared];
     if (!store.isActive || !store.hasStoredLocation) {
         %orig;
@@ -91,10 +110,13 @@
 - (void)viewDidLoad {
     %orig;
     WolfoxSpoofStore *store = [WolfoxSpoofStore shared];
-    if (!store.cameraSimEnabled || !store.simulatedCameraImage) return;
-    if (self.sourceType != UIImagePickerControllerSourceTypeCamera) return;
+    if (!store.cameraSimEnabled || !store.simulatedCameraImage) {
+        return;
+    }
+    if (self.sourceType != UIImagePickerControllerSourceTypeCamera) {
+        return;
+    }
 
-    // استبدال الكاميرا بالصورة المحددة
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if ([self.delegate respondsToSelector:@selector(imagePickerController:didFinishPickingMediaWithInfo:)]) {
             NSDictionary *info = @{
@@ -109,73 +131,61 @@
 %end
 
 // ============================================================
-//  تخطي حماية الجلبريك — JailbreakBypass
+//  تخطي حماية الجلبريك
 // ============================================================
 
-// إخفاء وجود ملفات الجلبريك
 %hook NSFileManager
 
 - (BOOL)fileExistsAtPath:(NSString *)path {
     static NSArray *jbPaths = nil;
-    if (!jbPaths) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
         jbPaths = @[
             @"/Applications/Cydia.app",
             @"/Applications/Sileo.app",
             @"/Applications/Zebra.app",
             @"/usr/sbin/sshd",
             @"/usr/bin/ssh",
-            @"/usr/libexec/ssh-keysign",
             @"/bin/bash",
-            @"/bin/sh",
             @"/etc/apt",
             @"/var/lib/dpkg",
-            @"/var/mobile/Library/Preferences/ABPattern",
-            @"/usr/lib/libhooker.dylib",
-            @"/usr/lib/TweakInject.dylib",
-            @"/var/jb",
-            @"/var/LIB",
-            @"/var/ulb",
-            @"/var/bin",
-            @"/var/sbin",
             @"/var/lib/apt",
             @"/var/lib/cydia",
+            @"/var/jb",
+            @"/private/var/jb",
             @"/private/var/lib/apt",
             @"/private/var/lib/cydia",
             @"/private/var/stash",
-            @"/private/var/jb",
+            @"/usr/lib/libhooker.dylib",
+            @"/usr/lib/TweakInject.dylib",
         ];
-    }
+    });
     for (NSString *p in jbPaths) {
-        if ([path hasPrefix:p] || [path isEqualToString:p]) return NO;
+        if ([path hasPrefix:p] || [path isEqualToString:p]) {
+            return NO;
+        }
     }
     return %orig;
 }
 
 - (BOOL)fileExistsAtPath:(NSString *)path isDirectory:(BOOL *)isDir {
     static NSArray *jbPaths = nil;
-    if (!jbPaths) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
         jbPaths = @[
-            @"/Applications/Cydia.app", @"/Applications/Sileo.app",
-            @"/usr/sbin/sshd", @"/bin/bash", @"/etc/apt",
-            @"/var/lib/dpkg", @"/var/jb", @"/private/var/jb",
+            @"/Applications/Cydia.app",
+            @"/Applications/Sileo.app",
+            @"/usr/sbin/sshd",
+            @"/bin/bash",
+            @"/etc/apt",
+            @"/var/lib/dpkg",
+            @"/var/jb",
+            @"/private/var/jb",
         ];
-    }
+    });
     for (NSString *p in jbPaths) {
-        if ([path hasPrefix:p] || [path isEqualToString:p]) return NO;
-    }
-    return %orig;
-}
-
-%end
-
-// إخفاء مسارات الجلبريك من قوائم الملفات
-%hook NSString
-
-- (BOOL)hasSuffix:(NSString *)suffix {
-    if ([suffix isEqualToString:@".dylib"]) {
-        NSArray *blocked = @[@"substrate", @"substitute", @"libhooker", @"TweakInject", @"cycript"];
-        for (NSString *b in blocked) {
-            if ([self containsString:b]) return NO;
+        if ([path hasPrefix:p] || [path isEqualToString:p]) {
+            return NO;
         }
     }
     return %orig;
@@ -183,13 +193,30 @@
 
 %end
 
-// إخفاء متغيرات البيئة المشبوهة
+%hook NSString
+
+- (BOOL)hasSuffix:(NSString *)suffix {
+    if ([suffix isEqualToString:@".dylib"]) {
+        NSArray *blocked = @[@"substrate", @"substitute", @"libhooker", @"TweakInject", @"cycript"];
+        for (NSString *b in blocked) {
+            if ([self containsString:b]) {
+                return NO;
+            }
+        }
+    }
+    return %orig;
+}
+
+%end
+
 %hook NSProcessInfo
 
-- (NSDictionary<NSString *, NSString *> *)environment {
+- (NSDictionary *)environment {
     NSMutableDictionary *env = [%orig mutableCopy];
     NSArray *blocked = @[@"DYLD_INSERT_LIBRARIES", @"_MSSafeMode", @"_SafeMode"];
-    for (NSString *k in blocked) [env removeObjectForKey:k];
+    for (NSString *k in blocked) {
+        [env removeObjectForKey:k];
+    }
     return [env copy];
 }
 
@@ -201,7 +228,6 @@
 
 %ctor {
     @autoreleasepool {
-        // تحميل الإعدادات المحفوظة
         [[WolfoxSpoofStore shared] load];
     }
 }
