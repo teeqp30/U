@@ -1,0 +1,9 @@
+Package: com.wolfox.gpsspoof
+Name: Gps Wolfox Ultimate
+Depends: firmware (>= 16.0), mobilesubstrate, preferenceloader
+Version: 3.2.0
+Architecture: iphoneos-arm
+Description: Advanced GPS Spoofing with Route Simulation, System Bypasses and Bluetooth Scanner.
+Maintainer: Wolfox
+Author: Wolfox
+Section: Tweaks
