@@ -211,12 +211,11 @@
 
 %hook NSProcessInfo
 
-- (NSDictionary<NSString *, NSString *> *)environment {
-    NSMutableDictionary<NSString *, NSString *> *env = [%orig mutableCopy];
-    NSArray<NSString *> *blocked = @[@"DYLD_INSERT_LIBRARIES", @"_MSSafeMode", @"_SafeMode"];
-    for (NSString *k in blocked) {
-        [env removeObjectForKey:k];
-    }
+- (id)environment {
+    NSMutableDictionary *env = [%orig mutableCopy];
+    [env removeObjectForKey:@"DYLD_INSERT_LIBRARIES"];
+    [env removeObjectForKey:@"_MSSafeMode"];
+    [env removeObjectForKey:@"_SafeMode"];
     return [env copy];
 }
 
