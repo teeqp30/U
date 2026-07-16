@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: macos-14
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -18,49 +18,45 @@ jobs:
         set -e
         export THEOS=~/theos
         git clone --recursive https://github.com/theos/theos $THEOS -q
-        
-    - name: Download iOS SDK
+        echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+        echo "$HOME/theos/bin" >> $GITHUB_PATH
+
+    - name: Link iOS SDK from Xcode
       run: |
         set -e
-        export THEOS=~/theos
-        mkdir -p $THEOS/sdks
+        # الحصول على مسار SDK الحقيقي من Xcode
+        REAL_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+        echo "✅ Xcode SDK: $REAL_SDK (v$SDK_VER)"
         
-        # استخدام Xcode SDK المثبت مسبقاً على macOS-14
-        XCODE_SDK=$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)
-        if [ -n "$XCODE_SDK" ]; then
-          SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null)
-          echo "✅ استخدام Xcode SDK: $XCODE_SDK (v$SDK_VER)"
-          ln -sf "$XCODE_SDK" "$THEOS/sdks/iPhoneOS${SDK_VER}.sdk"
-          echo "SDK_VERSION=$SDK_VER" >> $GITHUB_ENV
-        else
-          echo "❌ Xcode SDK غير متاح"
-          exit 1
-        fi
-        echo "SDKs: $(ls $THEOS/sdks/)"
+        # إنشاء رابط بالاسم الذي يتوقعه Theos
+        mkdir -p $HOME/theos/sdks
+        ln -sf "$REAL_SDK" "$HOME/theos/sdks/iPhoneOS${SDK_VER}.sdk"
+        
+        # تحديث Makefile ليستخدم الإصدار الصحيح
+        sed -i '' "s/TARGET := iphone:clang:[0-9.]*/TARGET := iphone:clang:${SDK_VER}/" Makefile 2>/dev/null || true
+        
+        echo "SDK_VERSION=$SDK_VER" >> $GITHUB_ENV
+        echo "SDKs المتاحة: $(ls $HOME/theos/sdks/)"
 
-    - name: Build dylib
+    - name: Build package
       run: |
-        export THEOS=~/theos
+        export THEOS=$HOME/theos
         export PATH=$THEOS/bin:$PATH
-        export TARGET="iphone:clang:${SDK_VERSION:-17.0}:14.0"
+        export TARGET="iphone:clang:${SDK_VERSION}:14.0"
         echo "Building with TARGET=$TARGET"
         make package FINALPACKAGE=1 2>&1
-        echo "✅ Build complete"
-        ls -la packages/ || echo "لا يوجد مجلد packages"
-        find . -name "*.dylib" -o -name "*.deb" | head -10
+        echo "---"
+        echo "الملفات المبنية:"
+        find . -name "*.dylib" -o -name "*.deb" 2>/dev/null | head -10
 
-    - name: Upload dylib artifact
+    - name: Upload Build Output
       uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: WolfGps-dylib
+        name: WolfGps-v3.4-Build
         path: |
-          packages/*.deb
+          packages/
           .theos/obj/**/*.dylib
         retention-days: 30
-
-    - name: Upload deb artifact  
-      uses: actions/upload-artifact@v4
-      with:
-        name: WolfGps-deb
-        path: packages/
-        retention-days: 30
+        if-no-files-found: warn
