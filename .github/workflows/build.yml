@@ -21,29 +21,21 @@ jobs:
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
         echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-    - name: Link Xcode iOS SDK into Theos
+    - name: Download Theos iOS SDK (16.5)
       run: |
         set -e
-        # الحصول على SDK الحقيقي من Xcode (مثبت مسبقاً على macOS-14)
-        SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
-        SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
-        echo "✅ Xcode SDK: $SDK_PATH"
-        echo "✅ SDK Version: $SDK_VER"
-        
         mkdir -p $HOME/theos/sdks
-        
-        # نسخ SDK بالكامل (وليس رابط رمزي) لضمان عمل Theos
-        cp -r "$SDK_PATH" "$HOME/theos/sdks/iPhoneOS${SDK_VER}.sdk"
-        
-        echo "SDK_VER=$SDK_VER" >> $GITHUB_ENV
-        ls $HOME/theos/sdks/
-
-    - name: Update Makefile SDK version
-      run: |
-        # تحديث إصدار SDK في Makefile
-        sed -i '' "s/TARGET = iphone:clang:[^:]*/TARGET = iphone:clang:${SDK_VER}/" Makefile
-        echo "Makefile TARGET:"
-        grep TARGET Makefile
+        # تحميل SDK المخصص لـ Theos من مستودعه الرسمي
+        curl -L https://github.com/theos/sdks/releases/download/2024-06-06/iPhoneOS16.5.sdk.tar.xz \
+          -o /tmp/sdk.tar.xz \
+          --retry 5 \
+          --retry-delay 5 \
+          --connect-timeout 30 \
+          --max-time 300 \
+          -f \
+          --show-error
+        tar -xJf /tmp/sdk.tar.xz -C $HOME/theos/sdks/
+        echo "✅ SDK installed: $(ls $HOME/theos/sdks/)"
 
     - name: Build package
       run: |
