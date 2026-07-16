@@ -43,8 +43,7 @@ jobs:
       run: |
         export THEOS=$HOME/theos
         export PATH=$THEOS/bin:$PATH
-        export TARGET="iphone:clang:${SDK_VERSION}:14.0"
-        echo "Building with TARGET=$TARGET"
+        echo "SDK المتاح: $(ls $THEOS/sdks/)"
         make package FINALPACKAGE=1 2>&1
         echo "---"
         echo "الملفات المبنية:"
