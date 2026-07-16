@@ -16,34 +16,39 @@ jobs:
     - name: Setup Theos
       run: |
         set -e
-        export THEOS=~/theos
+        export THEOS=$HOME/theos
         git clone --recursive https://github.com/theos/theos $THEOS -q
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
         echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-    - name: Link iOS SDK from Xcode
+    - name: Link Xcode iOS SDK into Theos
       run: |
         set -e
-        # الحصول على مسار SDK الحقيقي من Xcode
-        REAL_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+        # الحصول على SDK الحقيقي من Xcode (مثبت مسبقاً على macOS-14)
+        SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
         SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
-        echo "✅ Xcode SDK: $REAL_SDK (v$SDK_VER)"
+        echo "✅ Xcode SDK: $SDK_PATH"
+        echo "✅ SDK Version: $SDK_VER"
         
-        # إنشاء رابط بالاسم الذي يتوقعه Theos
         mkdir -p $HOME/theos/sdks
-        ln -sf "$REAL_SDK" "$HOME/theos/sdks/iPhoneOS${SDK_VER}.sdk"
         
-        # تحديث Makefile ليستخدم الإصدار الصحيح
-        sed -i '' "s/TARGET := iphone:clang:[0-9.]*/TARGET := iphone:clang:${SDK_VER}/" Makefile 2>/dev/null || true
+        # نسخ SDK بالكامل (وليس رابط رمزي) لضمان عمل Theos
+        cp -r "$SDK_PATH" "$HOME/theos/sdks/iPhoneOS${SDK_VER}.sdk"
         
-        echo "SDK_VERSION=$SDK_VER" >> $GITHUB_ENV
-        echo "SDKs المتاحة: $(ls $HOME/theos/sdks/)"
+        echo "SDK_VER=$SDK_VER" >> $GITHUB_ENV
+        ls $HOME/theos/sdks/
+
+    - name: Update Makefile SDK version
+      run: |
+        # تحديث إصدار SDK في Makefile
+        sed -i '' "s/TARGET = iphone:clang:[^:]*/TARGET = iphone:clang:${SDK_VER}/" Makefile
+        echo "Makefile TARGET:"
+        grep TARGET Makefile
 
     - name: Build package
       run: |
         export THEOS=$HOME/theos
         export PATH=$THEOS/bin:$PATH
-        echo "SDK المتاح: $(ls $THEOS/sdks/)"
         make package FINALPACKAGE=1 2>&1
         echo "---"
         echo "الملفات المبنية:"
