@@ -17,8 +17,8 @@ NSString *GPSApiBaseURL(void) { return GPS_API_BASE_URL; }
 NSString *GPSApiAccessToken(void) { return GPS_API_TOKEN; }
 NSString *GPSLocalVersion(void) { return GPS_LOCAL_VERSION; }
 
-NSString * const GPSLicenseAuthorizedNotification = @"GPSLicenseAuthorizedNotification";
-NSString * const GPSLicenseRevokedNotification = @"GPSLicenseRevokedNotification";
+
+
 NSString * const GPSLicenseRequestFinishedNotification = @"GPSLicenseRequestFinishedNotification";
 
 static NSString * const kGPSLicenseCodeKey = @"com.wolfox.gps.license.code";
@@ -254,7 +254,7 @@ static NSComparisonResult GPSCompareVersions(NSString *a, NSString *b) {
 }
 
 - (void)presentActivation {
-    dispatch_async(dispatch_get_main_queue(), ^{ GPSPresentActivationUI(); });
+    dispatch_async(dispatch_get_main_queue(), ^{ GPSLicensePresentActivation(); });
 }
 
 - (void)resetCurrentDevice {
