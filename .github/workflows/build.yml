@@ -21,26 +21,61 @@ jobs:
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
         echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-    - name: Download Theos iOS SDK (16.5)
+    - name: Download iOS SDK
       run: |
         set -e
         mkdir -p $HOME/theos/sdks
-        # تحميل SDK المخصص لـ Theos من مستودعه الرسمي
-        curl -L https://github.com/theos/sdks/releases/download/2024-06-06/iPhoneOS16.5.sdk.tar.xz \
-          -o /tmp/sdk.tar.xz \
-          --retry 5 \
-          --retry-delay 5 \
-          --connect-timeout 30 \
-          --max-time 300 \
-          -f \
-          --show-error
-        tar -xJf /tmp/sdk.tar.xz -C $HOME/theos/sdks/
-        echo "✅ SDK installed: $(ls $HOME/theos/sdks/)"
+        
+        echo "محاولة تحميل SDK من مصادر متعددة..."
+        
+        # المصدر 1: مستودع theos/sdks الرسمي
+        URL1="https://github.com/theos/sdks/releases/download/2024-06-06/iPhoneOS16.5.sdk.tar.xz"
+        # المصدر 2: نسخة مرآة
+        URL2="https://github.com/xybp888/iOS-SDKs/releases/download/v1.0/iPhoneOS16.5.sdk.tar.xz"
+        # المصدر 3: مستودع بديل
+        URL3="https://github.com/Siguza/ios-resources/releases/download/sdks/iPhoneOS16.5.sdk.tar.xz"
+        
+        for URL in "$URL1" "$URL2" "$URL3"; do
+          echo "جاري تجربة: $URL"
+          HTTP=$(curl -L "$URL" -o /tmp/sdk.tar.xz -w "%{http_code}" \
+            --retry 3 --retry-delay 3 \
+            --connect-timeout 20 --max-time 180 -s)
+          echo "HTTP Status: $HTTP"
+          if [ "$HTTP" = "200" ] && [ -s /tmp/sdk.tar.xz ]; then
+            echo "✅ تم التحميل بنجاح"
+            tar -xJf /tmp/sdk.tar.xz -C $HOME/theos/sdks/ 2>&1 || true
+            if ls $HOME/theos/sdks/*.sdk 1>/dev/null 2>&1; then
+              echo "✅ SDK مثبت: $(ls $HOME/theos/sdks/)"
+              break
+            fi
+          fi
+          rm -f /tmp/sdk.tar.xz
+        done
+        
+        # إذا فشلت كل المصادر، استخدم Xcode SDK مع إصلاح modulemap
+        if ! ls $HOME/theos/sdks/*.sdk 1>/dev/null 2>&1; then
+          echo "⚠️ استخدام Xcode SDK مع إصلاح modulemap..."
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+          
+          # نسخ SDK
+          cp -r "$SDK_PATH" "$HOME/theos/sdks/iPhoneOS${SDK_VER}.sdk"
+          
+          # إصلاح تعارض libxml2 modulemap
+          THEOS_SDK="$HOME/theos/sdks/iPhoneOS${SDK_VER}.sdk"
+          rm -f "$THEOS_SDK/usr/include/libxml/module.modulemap" 2>/dev/null || true
+          
+          # تحديث Makefile
+          sed -i '' "s/TARGET = iphone:clang:[^:]*/TARGET = iphone:clang:${SDK_VER}/" Makefile
+          
+          echo "✅ Xcode SDK جاهز: $(ls $HOME/theos/sdks/)"
+        fi
 
     - name: Build package
       run: |
         export THEOS=$HOME/theos
         export PATH=$THEOS/bin:$PATH
+        echo "SDK المستخدم: $(ls $THEOS/sdks/)"
         make package FINALPACKAGE=1 2>&1
         echo "---"
         echo "الملفات المبنية:"
