@@ -21,20 +21,32 @@ jobs:
         
     - name: Download iOS SDK
       run: |
+        set -e
         export THEOS=~/theos
         mkdir -p $THEOS/sdks
-        curl -L https://github.com/theos/sdks/releases/download/2024-06-06/iPhoneOS16.5.sdk.tar.xz \
-          -o /tmp/sdk.tar.xz --progress-bar
-        tar -xJf /tmp/sdk.tar.xz -C $THEOS/sdks/
-        echo "✅ SDK installed: $(ls $THEOS/sdks/)"
+        
+        # استخدام Xcode SDK المثبت مسبقاً على macOS-14
+        XCODE_SDK=$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)
+        if [ -n "$XCODE_SDK" ]; then
+          SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null)
+          echo "✅ استخدام Xcode SDK: $XCODE_SDK (v$SDK_VER)"
+          ln -sf "$XCODE_SDK" "$THEOS/sdks/iPhoneOS${SDK_VER}.sdk"
+          echo "SDK_VERSION=$SDK_VER" >> $GITHUB_ENV
+        else
+          echo "❌ Xcode SDK غير متاح"
+          exit 1
+        fi
+        echo "SDKs: $(ls $THEOS/sdks/)"
 
     - name: Build dylib
       run: |
         export THEOS=~/theos
         export PATH=$THEOS/bin:$PATH
-        make package FINALPACKAGE=1
+        export TARGET="iphone:clang:${SDK_VERSION:-17.0}:14.0"
+        echo "Building with TARGET=$TARGET"
+        make package FINALPACKAGE=1 2>&1
         echo "✅ Build complete"
-        ls -la packages/ || true
+        ls -la packages/ || echo "لا يوجد مجلد packages"
         find . -name "*.dylib" -o -name "*.deb" | head -10
 
     - name: Upload dylib artifact
