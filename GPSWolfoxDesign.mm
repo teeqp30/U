@@ -2,7 +2,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import "GPSWolfoxAPI.h"
 #import "WolfoxSpoofStore.h"
-#import "Tweak.x"
+
 
 static UIColor *WFColor(NSInteger rgb, CGFloat alpha) {
     return [UIColor colorWithRed:((rgb >> 16) & 0xFF)/255.0
