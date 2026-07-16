@@ -188,7 +188,7 @@ static NSDate *_lastVolumeTime = nil;
 
 static WolfGpsFloatingButton *wolfButton = nil;
 
-void WolfGpsInitUI(void) {
+extern "C" void WolfGpsInitUI(void) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (!wolfButton) {
             wolfButton = [[WolfGpsFloatingButton alloc] init];
