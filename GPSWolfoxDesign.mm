@@ -2,6 +2,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import "WolfoxSpoofStore.h"
 #import "WolfoxSpoofOverlay.h"
+#import <substrate.h>
 
 // ============================================================
 //  الأيقونة العائمة لـ Wolf Gps
