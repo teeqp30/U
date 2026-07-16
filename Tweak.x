@@ -11,12 +11,7 @@
 #import "WolfoxSpoofOverlay.h"
 
 // -------------- License API --------------
-extern void GPSLicenseStart(void);
-extern BOOL GPSLicenseIsAuthorized(void);
-extern void GPSLicensePresentActivation(void);
-extern NSString* GPSLicenseExpiresAt(void);
-#define GPSLicenseAuthorizedNotification @"GPSLicenseAuthorizedNotification"
-#define GPSLicenseRevokedNotification @"GPSLicenseRevokedNotification"
+#import "GPSWolfoxAPI.h"
 
 // -------------- Helpers --------------
 static UIWindow *WolfoxCurrentWindow(void) {
